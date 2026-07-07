@@ -1,0 +1,2520 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>标注日报分析</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #1f2329;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --blue: #2563eb;
+      --green: #16a34a;
+      --red: #ef4444;
+      --orange: #f59e0b;
+      --gray: #64748b;
+      --blue-soft: #eff6ff;
+      --green-soft: #ecfdf3;
+      --red-soft: #fef2f2;
+      --orange-soft: #fff7ed;
+      --shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+      --radius: 16px;
+      --gap: 20px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      letter-spacing: 0;
+    }
+
+    button, input, select, textarea { font: inherit; }
+    button { border: 0; cursor: pointer; }
+
+    .app {
+      width: 100%;
+      max-width: none;
+      margin: 0;
+      padding: 24px;
+      box-sizing: border-box;
+    }
+
+    .top {
+      display: grid;
+      grid-template-columns: minmax(280px, 1fr) auto;
+      gap: var(--gap);
+      align-items: center;
+      margin-bottom: var(--gap);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1.15;
+      font-weight: 820;
+    }
+
+    .subtitle {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      min-height: 38px;
+      padding: 0 14px;
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      color: #fff;
+      background: var(--blue);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .btn.secondary {
+      color: var(--text);
+      background: #fff;
+      border: 1px solid var(--line);
+    }
+
+    .btn.warning {
+      background: var(--orange);
+    }
+
+    .btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    .btn svg {
+      width: 17px;
+      height: 17px;
+      stroke-width: 2.2;
+    }
+
+    .file-input { display: none; }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--gap);
+      margin-bottom: var(--gap);
+      width: 100%;
+    }
+
+    .metric {
+      min-height: 104px;
+      padding: 16px;
+      border-radius: var(--radius);
+      background: var(--card);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .metric::after {
+      content: "";
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 14px;
+      height: 5px;
+      border-radius: 999px;
+      background: var(--blue);
+      opacity: 0.85;
+    }
+
+    .metric.red::after { background: var(--red); }
+    .metric.green::after { background: var(--green); }
+    .metric.orange::after { background: var(--orange); }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .metric-value {
+      margin-top: 10px;
+      font-size: 32px;
+      line-height: 1;
+      font-weight: 850;
+      color: var(--blue);
+    }
+
+    .metric.red .metric-value { color: var(--red); }
+    .metric.green .metric-value { color: var(--green); }
+    .metric.orange .metric-value { color: var(--orange); }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 20px;
+      align-items: start;
+      width: 100%;
+    }
+
+    .side {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--gap);
+      width: 100%;
+    }
+
+    .side > .card:first-child {
+      display: none;
+    }
+
+    .main {
+      display: grid;
+      gap: var(--gap);
+      min-width: 0;
+      width: 100%;
+    }
+
+    .card {
+      width: 100%;
+      min-width: 0;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .card.pad { padding: 16px; }
+
+    .card-head {
+      padding: 16px 16px 0;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .card-title {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 800;
+      line-height: 1.3;
+    }
+
+    .card-subtitle {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .upload-panel {
+      padding: 14px;
+      border: 1.5px dashed #b8c7e8;
+      border-radius: 14px;
+      background: var(--blue-soft);
+      text-align: center;
+    }
+
+    .upload-panel.is-dragging {
+      border-color: var(--blue);
+      background: #dbeafe;
+    }
+
+    .upload-title {
+      margin: 4px 0 6px;
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .upload-copy {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .rule-list {
+      list-style: none;
+      margin: 12px 0 0;
+      padding: 0;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(160px, 1fr));
+      gap: 8px;
+      font-size: 13px;
+      color: #344054;
+    }
+
+    .rule-list li {
+      padding: 10px 11px;
+      border-radius: 12px;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      line-height: 1.45;
+    }
+
+    .rule-list code {
+      color: var(--red);
+      font-family: Consolas, "Microsoft YaHei", monospace;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(120px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 5px;
+      color: #475467;
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .input, .select, .textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+    }
+
+    .input, .select {
+      height: 36px;
+      padding: 0 10px;
+    }
+
+    .textarea {
+      min-height: 180px;
+      padding: 12px;
+      resize: vertical;
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    .input:focus, .select:focus, .textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    .notice {
+      margin: 12px 0 0;
+      padding: 10px 11px;
+      border-radius: 12px;
+      color: var(--muted);
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .notice.error {
+      color: var(--red);
+      background: var(--red-soft);
+      border-color: #fecaca;
+    }
+
+    .chart-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 0.35fr) minmax(0, 0.65fr);
+      gap: 20px;
+      width: 100%;
+    }
+
+    .chart-grid.equal {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .chart-body {
+      padding: 12px 16px 16px;
+      background:
+        radial-gradient(circle at 100% 0%, rgba(37, 99, 235, 0.08), transparent 34%),
+        linear-gradient(180deg, #ffffff, #fbfcff);
+    }
+
+    .chart-canvas {
+      width: 100%;
+      height: 240px;
+      display: block;
+    }
+
+    .donut-row {
+      display: grid;
+      grid-template-columns: minmax(130px, 0.72fr) minmax(0, 1fr);
+      align-items: center;
+      gap: 12px;
+    }
+
+    .donut-canvas {
+      width: 100%;
+      aspect-ratio: 1;
+      display: block;
+      margin: 0;
+    }
+
+    .legend {
+      display: grid;
+      gap: 10px;
+    }
+
+    .legend-item {
+      display: grid;
+      grid-template-columns: 10px minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+      font-size: 13px;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+    }
+
+    .legend-label {
+      color: #475467;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .legend-value { font-weight: 800; }
+
+    .conclusion-card {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: center;
+      padding: 18px;
+      border-left: 5px solid var(--red);
+    }
+
+    .conclusion-title {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 850;
+    }
+
+    .conclusion-text {
+      margin: 8px 0 0;
+      color: #334155;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .risk-badge {
+      min-width: 90px;
+      min-height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      color: #fff;
+      background: var(--red);
+      font-weight: 850;
+    }
+
+    .risk-dashboard {
+      padding: 12px 16px 16px;
+    }
+
+    .risk-number {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .risk-number strong {
+      font-size: 42px;
+      line-height: 1;
+      color: var(--red);
+    }
+
+    .risk-number span {
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .risk-meter {
+      position: relative;
+      height: 16px;
+      border-radius: 999px;
+      background:
+        linear-gradient(90deg,
+          var(--green) 0%, var(--green) 10%,
+          var(--blue) 10%, var(--blue) 25%,
+          var(--orange) 25%, var(--orange) 40%,
+          var(--red) 40%, var(--red) 100%);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.55);
+    }
+
+    .risk-pointer {
+      position: absolute;
+      top: -7px;
+      width: 4px;
+      height: 30px;
+      border-radius: 999px;
+      background: #111827;
+      transform: translateX(-2px);
+    }
+
+    .risk-scale {
+      display: grid;
+      grid-template-columns: 10fr 15fr 15fr 60fr;
+      gap: 0;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .risk-stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .risk-stat {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: #f8fafc;
+      font-size: 13px;
+    }
+
+    .risk-stat strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 20px;
+    }
+
+    .chart-conclusion {
+      padding: 0 16px 14px;
+      color: #334155;
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .project-risk-list {
+      display: grid;
+      gap: 10px;
+      padding: 12px 16px 16px;
+    }
+
+    .project-risk-row {
+      display: grid;
+      grid-template-columns: minmax(180px, 1.3fr) 70px 86px 72px minmax(120px, 0.9fr);
+      gap: 10px;
+      align-items: center;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fbfcfe;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.12s ease, border-color 0.12s ease;
+    }
+
+    .project-risk-row:hover {
+      background: #f8fafc;
+    }
+
+    .project-risk-row.active {
+      border: 1px solid #2563eb;
+      background: #eff6ff;
+    }
+
+    .heat-track {
+      height: 9px;
+      border-radius: 999px;
+      background: #e5e7eb;
+      overflow: hidden;
+    }
+
+    .heat-fill {
+      height: 100%;
+      border-radius: inherit;
+    }
+
+    .person-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      padding: 12px 16px 16px;
+    }
+
+    .follow-pager {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      flex-wrap: wrap;
+    }
+
+    .pager-btn {
+      min-height: 30px;
+      padding: 0 10px;
+      border-radius: 8px;
+      color: var(--text);
+      background: #fff;
+      border: 1px solid var(--line);
+      font-weight: 700;
+    }
+
+    .pager-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .person-card {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fbfcfe;
+    }
+
+    .person-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .person-name {
+      font-size: 15px;
+      font-weight: 850;
+    }
+
+    .person-meta,
+    .person-rule,
+    .person-action {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .btn.followed-btn {
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #86efac;
+    }
+
+    .person-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .person-metric {
+      padding: 8px;
+      border-radius: 10px;
+      background: #f8fafc;
+      font-size: 12px;
+    }
+
+    .person-metric strong {
+      display: block;
+      margin-top: 2px;
+      color: #111827;
+      font-size: 15px;
+    }
+
+    .risk-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 0 0 0;
+      margin-bottom: var(--gap);
+    }
+
+    .risk-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 30px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: #ffffff;
+      border: 1px solid var(--line);
+      color: #334155;
+      font-size: 12px;
+      font-weight: 750;
+      box-shadow: var(--shadow);
+    }
+
+    .risk-pill i {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+
+    .follow-list {
+      display: grid;
+      gap: 10px;
+      padding: 12px 16px 16px;
+    }
+
+    .follow-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fbfcfe;
+    }
+
+    .follow-name {
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .follow-meta {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .follow-action {
+      margin-top: 6px;
+      color: #344054;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: auto auto minmax(220px, 1.3fr) minmax(160px, 0.8fr) minmax(180px, 0.9fr) auto auto;
+      gap: 10px;
+      padding: 12px 16px 0;
+      align-items: center;
+      width: 100%;
+    }
+
+    .filter-chip {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      min-height: 32px;
+      padding: 0 10px;
+      border-radius: 999px;
+      color: var(--blue);
+      background: var(--blue-soft);
+      border: 1px solid #bfdbfe;
+      font-size: 13px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .filter-chip.is-visible {
+      display: inline-flex;
+    }
+
+    .chip-close {
+      border: 0;
+      padding: 0;
+      background: transparent;
+      color: var(--blue);
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: #475467;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .switch input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--blue);
+    }
+
+    .table-wrap {
+      margin-top: 12px;
+      overflow: auto;
+      max-height: 640px;
+      border-top: 1px solid var(--line);
+      width: 100%;
+    }
+
+    table {
+      width: 100%;
+      min-width: 1120px;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #edf0f3;
+      text-align: left;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      color: #475467;
+      background: #f9fafb;
+      font-weight: 800;
+    }
+
+    tr.is-abnormal td {
+      background: rgba(220, 38, 38, 0.045);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--gray);
+      background: #f1f5f9;
+    }
+
+    .pill.normal { color: var(--green); background: var(--green-soft); }
+    .pill.abnormal { color: var(--red); background: var(--red-soft); }
+    .pill.reason-low-output { color: #a16207; background: #fef3c7; }
+    .pill.reason-low-eff { color: var(--blue); background: var(--blue-soft); }
+    .pill.reason-accuracy { color: var(--red); background: var(--red-soft); }
+    .pill.reason-brush { color: #7c3aed; background: #f3e8ff; }
+    .pill.reason-record { color: #be185d; background: #fce7f3; }
+
+    .empty {
+      padding: 46px 16px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .report-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      width: 100%;
+    }
+
+    .report-bar {
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid transparent;
+    }
+
+    .report-card.is-open .report-bar {
+      border-bottom-color: var(--line);
+    }
+
+    .report-title {
+      font-size: 17px;
+      font-weight: 800;
+    }
+
+    .report-bar-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .report-panel {
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .report-panel[hidden] {
+      display: none;
+    }
+
+    .api-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .report-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .api-status {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .api-status.error { color: var(--red); }
+    .api-status.ok { color: var(--green); }
+
+    @media (max-width: 1120px) {
+      .workspace { grid-template-columns: 1fr; }
+      .side { grid-template-columns: 1fr; }
+      .rule-list { grid-template-columns: repeat(2, minmax(180px, 1fr)); }
+      .form-grid { grid-template-columns: repeat(3, minmax(120px, 1fr)); }
+      .chart-grid, .chart-grid.equal { grid-template-columns: 1fr; }
+      .person-grid { grid-template-columns: 1fr; }
+      .project-risk-row { grid-template-columns: minmax(160px, 1fr) 64px 78px 70px minmax(100px, 0.8fr); }
+    }
+
+    @media (max-width: 760px) {
+      .app { padding: 14px; }
+      .top { grid-template-columns: 1fr; }
+      .top-actions { justify-content: flex-start; }
+      .metrics { grid-template-columns: 1fr 1fr; }
+      .side { grid-template-columns: 1fr; }
+      .rule-list { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      .filters { grid-template-columns: 1fr; }
+      .api-grid { grid-template-columns: 1fr; }
+      .donut-row { grid-template-columns: 1fr; }
+      h1 { font-size: 28px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="top">
+      <div>
+        <h1>标注日报分析</h1>
+        <p class="subtitle">上传 CSV 后自动识别异常、定位需要跟进的人和项目，并生成可导出的处理文件与日报。</p>
+      </div>
+      <div class="top-actions">
+        <button class="btn secondary" id="pickBtn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="M17 8l-5-5-5 5"></path><path d="M12 3v12"></path></svg>
+          上传 CSV
+        </button>
+        <input class="file-input" id="fileInput" type="file" accept=".csv,text/csv">
+        <button class="btn secondary" id="clearBtn" type="button" disabled>清空</button>
+        <button class="btn" id="exportBtn" type="button" disabled>导出处理文件</button>
+      </div>
+    </section>
+
+    <section class="metrics">
+      <div class="metric">
+        <div class="metric-label">总记录数</div>
+        <div class="metric-value" id="totalCount">0</div>
+      </div>
+      <div class="metric red">
+        <div class="metric-label">异常记录</div>
+        <div class="metric-value" id="abnormalCount">0</div>
+      </div>
+      <div class="metric green">
+        <div class="metric-label">正常记录</div>
+        <div class="metric-value" id="normalCount">0</div>
+      </div>
+      <div class="metric orange">
+        <div class="metric-label">异常占比</div>
+        <div class="metric-value" id="abnormalRate">0%</div>
+      </div>
+    </section>
+
+    <section class="workspace">
+      <aside class="side">
+        <section class="card pad">
+          <div class="upload-panel" id="dropzone">
+            <div class="upload-title">拖入 CSV 文件</div>
+            <p class="upload-copy">支持字段：完成量/标注量、作业时长/时长、质量得分/准确率。</p>
+          </div>
+          <p class="notice" id="messageBox">等待上传文件。所有处理都在本机浏览器完成。</p>
+        </section>
+
+        <section class="card pad">
+          <h2 class="card-title">规则与阈值</h2>
+          <p class="card-subtitle">调整阈值后会自动刷新所有图表和表格。</p>
+          <ul class="rule-list">
+            <li>标注量 <code>&lt; <span id="ruleQuantityText">300</span></code>：产能偏低</li>
+            <li>人效 <code>&lt; <span id="ruleEfficiencyText">50</span> 条/小时</code>：人效偏低</li>
+            <li>准确率 <code>&lt; <span id="ruleAccuracyText">85</span>%</code>：准确率异常</li>
+            <li>标注量 <code>&gt; <span id="ruleBrushQuantityText">600</span></code> 且准确率 <code>&lt; <span id="ruleBrushAccuracyText">80</span>%</code>：疑似低质量刷量</li>
+            <li>时长 <code>&gt; 0</code> 且标注量 <code>= 0</code>：工作记录异常</li>
+          </ul>
+          <div class="form-grid">
+            <div class="field">
+              <label for="thresholdQuantity">产能阈值</label>
+              <input class="input" id="thresholdQuantity" type="number" min="0" value="300">
+            </div>
+            <div class="field">
+              <label for="thresholdEfficiency">人效阈值</label>
+              <input class="input" id="thresholdEfficiency" type="number" min="0" value="50">
+            </div>
+            <div class="field">
+              <label for="thresholdAccuracy">准确率 %</label>
+              <input class="input" id="thresholdAccuracy" type="number" min="0" max="100" value="85">
+            </div>
+            <div class="field">
+              <label for="thresholdBrushAccuracy">刷量准确率 %</label>
+              <input class="input" id="thresholdBrushAccuracy" type="number" min="0" max="100" value="80">
+            </div>
+            <div class="field">
+              <label for="thresholdBrushQuantity">刷量标注量</label>
+              <input class="input" id="thresholdBrushQuantity" type="number" min="0" value="600">
+            </div>
+          </div>
+          <div style="margin-top:12px">
+            <button class="btn secondary" id="resetThresholdBtn" type="button">恢复默认阈值</button>
+          </div>
+        </section>
+      </aside>
+
+      <section class="main">
+        <section class="card conclusion-card">
+          <div>
+            <h2 class="conclusion-title" id="conclusionTitle">今日质量风险：等待数据</h2>
+            <p class="conclusion-text" id="conclusionText">上传 CSV 后自动生成今日结论摘要。</p>
+          </div>
+          <div class="risk-badge" id="conclusionBadge">待分析</div>
+        </section>
+
+        <div class="risk-strip">
+          <span class="risk-pill"><i style="background:#f59e0b"></i>产能偏低</span>
+          <span class="risk-pill"><i style="background:#2563eb"></i>人效偏低</span>
+          <span class="risk-pill"><i style="background:#ef4444"></i>准确率异常</span>
+          <span class="risk-pill"><i style="background:#8b5cf6"></i>疑似低质量刷量</span>
+          <span class="risk-pill"><i style="background:#ec4899"></i>工作记录异常</span>
+        </div>
+
+        <section class="chart-grid">
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">异常风险仪表盘</h2>
+                <p class="card-subtitle">风险等级：0-10 良好，10-25 关注，25-40 较高，40+ 严重。</p>
+              </div>
+            </div>
+            <div class="risk-dashboard" id="riskDashboard">
+              <div class="risk-number"><strong id="riskPercent">0%</strong><span id="riskLevelText">等待数据</span></div>
+              <div class="risk-meter"><span class="risk-pointer" id="riskPointer" style="left:0%"></span></div>
+              <div class="risk-scale"><span>良好</span><span>关注</span><span>较高</span><span>严重</span></div>
+              <div class="risk-stats">
+                <div class="risk-stat">异常<strong id="riskAbnormal">0 条</strong></div>
+                <div class="risk-stat">正常<strong id="riskNormal">0 条</strong></div>
+              </div>
+            </div>
+            <div class="chart-conclusion" id="riskConclusion">上传数据后显示风险判断。</div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">异常原因 Pareto 图</h2>
+                <p class="card-subtitle">单位：条 / 异常占比 / 累计占比。点击条形可筛选明细表。</p>
+              </div>
+            </div>
+            <div class="chart-body">
+              <canvas class="chart-canvas" id="reasonChart" width="760" height="280"></canvas>
+            </div>
+            <div class="chart-conclusion" id="paretoConclusion">上传数据后显示主要异常来源。</div>
+          </div>
+        </section>
+
+        <section class="chart-grid equal">
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">项目风险排行表</h2>
+                <p class="card-subtitle">显示项目异常数、异常占比、风险等级和热度条。点击项目可筛选明细表。</p>
+              </div>
+            </div>
+            <div class="project-risk-list" id="projectRiskList"><div class="empty">等待数据</div></div>
+            <div class="chart-conclusion" id="projectConclusion">上传数据后显示高风险项目。</div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">重点跟进人员卡片</h2>
+                <p class="card-subtitle">按准确率低、人效低、异常严重程度排序。</p>
+              </div>
+              <div class="follow-pager" id="followPager"></div>
+            </div>
+            <div class="person-grid" id="followList"><div class="empty">等待数据</div></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">准确率健康分布</h2>
+              <p class="card-subtitle" id="accuracyInsight">单位：人/记录，低于 85% 的记录需要优先复核。</p>
+            </div>
+          </div>
+          <div class="chart-body">
+            <canvas class="chart-canvas" id="accuracyHistogram" width="1000" height="250"></canvas>
+          </div>
+          <div class="chart-conclusion" id="accuracyConclusion">上传数据后显示准确率健康判断。</div>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">完整明细表</h2>
+              <p class="card-subtitle">默认异常优先，其次准确率低优先。表头固定，横向滚动保留。</p>
+            </div>
+          </div>
+          <div class="filters">
+            <span class="filter-chip" id="projectFilterChip">当前筛选：<span id="projectFilterText"></span><button class="chip-close" id="chipClearProjectBtn" type="button">×</button></span>
+            <button class="btn secondary" id="clearProjectBtn" type="button" disabled>清除项目筛选</button>
+            <input class="input" id="searchInput" type="search" placeholder="搜索姓名、项目、原因" disabled>
+            <select class="select" id="reasonFilter" disabled><option value="all">全部异常原因</option></select>
+            <select class="select" id="projectFilter" disabled><option value="all">全部项目</option></select>
+            <label class="switch"><input id="onlyAbnormal" type="checkbox" disabled>只看异常</label>
+            <button class="btn secondary" id="clearFiltersBtn" type="button" disabled>清除筛选</button>
+          </div>
+          <div class="table-wrap">
+            <div class="empty" id="emptyState">上传 CSV 后显示明细表。</div>
+            <table id="previewTable" hidden>
+              <thead id="tableHead"></thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="report-card" id="reportCard">
+          <div class="report-bar">
+            <div class="report-title">日报生成区域</div>
+            <div class="report-bar-actions">
+              <button class="btn secondary" id="toggleReportBtn" type="button">展开配置</button>
+              <button class="btn warning" id="localReportBtn" type="button" disabled>本地日报</button>
+              <button class="btn" id="generateReportBtn" type="button" disabled>API 生成日报</button>
+              <button class="btn secondary" id="exportReportBtn" type="button" disabled>导出日报</button>
+            </div>
+          </div>
+          <div class="report-panel" id="reportPanel" hidden>
+            <div class="api-grid">
+              <div class="field">
+                <label for="reportDate">日报日期</label>
+                <input class="input" id="reportDate" type="date">
+              </div>
+              <div class="field">
+                <label for="reportTeam">团队 / 项目</label>
+                <input class="input" id="reportTeam" type="text" placeholder="例如：标注运营组">
+              </div>
+              <div class="field">
+                <label for="reportOwner">汇报人</label>
+                <input class="input" id="reportOwner" type="text" placeholder="你的名字">
+              </div>
+              <div class="field">
+                <label for="apiEndpoint">API 地址</label>
+                <input class="input" id="apiEndpoint" type="url" value="https://api.openai.com/v1/chat/completions" placeholder="https://.../v1/chat/completions">
+              </div>
+              <div class="field">
+                <label for="apiKey">API Key</label>
+                <input class="input" id="apiKey" type="password" placeholder="折叠区内配置，不占用主页面">
+              </div>
+              <div class="field">
+                <label for="apiModel">模型名</label>
+                <input class="input" id="apiModel" type="text" placeholder="填写模型名">
+              </div>
+            </div>
+            <div class="report-actions">
+              <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <button class="btn secondary" id="saveApiBtn" type="button">保存配置</button>
+                <button class="btn secondary" id="copyReportBtn" type="button" disabled>复制日报</button>
+              </div>
+              <div class="api-status" id="apiStatus">默认先用本地日报，API 可用于润色。</div>
+            </div>
+            <textarea class="textarea" id="reportPreview" placeholder="日报结果会显示在这里。" readonly></textarea>
+          </div>
+        </section>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const FIELD_ALIASES = {
+      quantity: ["标注量", "完成量", "任务量", "产出量"],
+      hours: ["时长", "作业时长", "工作时长", "耗时"],
+      accuracy: ["准确率", "质量得分", "质量分", "正确率"],
+      correct: ["正确量", "正确数"],
+      sample: ["抽检量", "抽样量", "检查量"]
+    };
+
+    const OUTPUT_FIELDS = ["人效_条每小时", "准确率_%", "是否异常", "异常原因", "建议动作"];
+    const MAX_REPORT_ROWS = 120;
+    const MAX_TABLE_ROWS = 1000;
+    const DEFAULT_THRESHOLDS = {
+      quantityMin: 300,
+      efficiencyMin: 50,
+      accuracyMin: 85,
+      brushQuantityMin: 600,
+      brushAccuracyMax: 80
+    };
+    const COLORS = {
+      blue: "#2563eb",
+      green: "#16a34a",
+      red: "#ef4444",
+      orange: "#f59e0b",
+      gray: "#64748b",
+      purple: "#8b5cf6",
+      pink: "#ec4899",
+      teal: "#14b8a6"
+    };
+    const REASON_META = {
+      "产能偏低": { color: COLORS.orange, className: "reason-low-output", action: "复核任务量，确认是否存在产能瓶颈。" },
+      "人效偏低": { color: COLORS.blue, className: "reason-low-eff", action: "检查作业流程，安排效率辅导。" },
+      "准确率异常": { color: COLORS.red, className: "reason-accuracy", action: "复核样本，检查规则理解偏差。" },
+      "疑似低质量刷量": { color: COLORS.purple, className: "reason-brush", action: "暂停批量任务，抽检近期样本。" },
+      "工作记录异常": { color: COLORS.pink, className: "reason-record", action: "核对工时记录和任务分配。" }
+    };
+    const PROJECT_COLORS = [COLORS.blue, COLORS.teal, COLORS.purple, COLORS.orange, COLORS.green, COLORS.pink, COLORS.red];
+
+    const state = {
+      fileName: "",
+      headers: [],
+      rawRows: [],
+      outputHeaders: [],
+      rows: [],
+      filteredRows: [],
+      fieldMap: null,
+      thresholds: { ...DEFAULT_THRESHOLDS },
+      chartResizeTimer: null,
+      reasonHitboxes: [],
+      projectHitboxes: [],
+      followPage: 1,
+      followPageSize: 6,
+      followedUsers: new Set(),
+      reportText: ""
+    };
+
+    const els = {
+      pickBtn: document.getElementById("pickBtn"),
+      fileInput: document.getElementById("fileInput"),
+      dropzone: document.getElementById("dropzone"),
+      clearBtn: document.getElementById("clearBtn"),
+      exportBtn: document.getElementById("exportBtn"),
+      messageBox: document.getElementById("messageBox"),
+      totalCount: document.getElementById("totalCount"),
+      abnormalCount: document.getElementById("abnormalCount"),
+      normalCount: document.getElementById("normalCount"),
+      abnormalRate: document.getElementById("abnormalRate"),
+      conclusionTitle: document.getElementById("conclusionTitle"),
+      conclusionText: document.getElementById("conclusionText"),
+      conclusionBadge: document.getElementById("conclusionBadge"),
+      riskPercent: document.getElementById("riskPercent"),
+      riskLevelText: document.getElementById("riskLevelText"),
+      riskPointer: document.getElementById("riskPointer"),
+      riskAbnormal: document.getElementById("riskAbnormal"),
+      riskNormal: document.getElementById("riskNormal"),
+      riskConclusion: document.getElementById("riskConclusion"),
+      reasonChart: document.getElementById("reasonChart"),
+      paretoConclusion: document.getElementById("paretoConclusion"),
+      projectRiskList: document.getElementById("projectRiskList"),
+      projectConclusion: document.getElementById("projectConclusion"),
+      accuracyHistogram: document.getElementById("accuracyHistogram"),
+      accuracyInsight: document.getElementById("accuracyInsight"),
+      accuracyConclusion: document.getElementById("accuracyConclusion"),
+      followList: document.getElementById("followList"),
+      followPager: document.getElementById("followPager"),
+      projectFilterChip: document.getElementById("projectFilterChip"),
+      projectFilterText: document.getElementById("projectFilterText"),
+      chipClearProjectBtn: document.getElementById("chipClearProjectBtn"),
+      clearProjectBtn: document.getElementById("clearProjectBtn"),
+      searchInput: document.getElementById("searchInput"),
+      reasonFilter: document.getElementById("reasonFilter"),
+      projectFilter: document.getElementById("projectFilter"),
+      onlyAbnormal: document.getElementById("onlyAbnormal"),
+      clearFiltersBtn: document.getElementById("clearFiltersBtn"),
+      emptyState: document.getElementById("emptyState"),
+      previewTable: document.getElementById("previewTable"),
+      tableHead: document.getElementById("tableHead"),
+      tableBody: document.getElementById("tableBody"),
+      thresholdQuantity: document.getElementById("thresholdQuantity"),
+      thresholdEfficiency: document.getElementById("thresholdEfficiency"),
+      thresholdAccuracy: document.getElementById("thresholdAccuracy"),
+      thresholdBrushQuantity: document.getElementById("thresholdBrushQuantity"),
+      thresholdBrushAccuracy: document.getElementById("thresholdBrushAccuracy"),
+      resetThresholdBtn: document.getElementById("resetThresholdBtn"),
+      ruleQuantityText: document.getElementById("ruleQuantityText"),
+      ruleEfficiencyText: document.getElementById("ruleEfficiencyText"),
+      ruleAccuracyText: document.getElementById("ruleAccuracyText"),
+      ruleBrushQuantityText: document.getElementById("ruleBrushQuantityText"),
+      ruleBrushAccuracyText: document.getElementById("ruleBrushAccuracyText"),
+      reportDate: document.getElementById("reportDate"),
+      reportTeam: document.getElementById("reportTeam"),
+      reportOwner: document.getElementById("reportOwner"),
+      reportCard: document.getElementById("reportCard"),
+      reportPanel: document.getElementById("reportPanel"),
+      toggleReportBtn: document.getElementById("toggleReportBtn"),
+      apiEndpoint: document.getElementById("apiEndpoint"),
+      apiKey: document.getElementById("apiKey"),
+      apiModel: document.getElementById("apiModel"),
+      saveApiBtn: document.getElementById("saveApiBtn"),
+      localReportBtn: document.getElementById("localReportBtn"),
+      generateReportBtn: document.getElementById("generateReportBtn"),
+      copyReportBtn: document.getElementById("copyReportBtn"),
+      exportReportBtn: document.getElementById("exportReportBtn"),
+      apiStatus: document.getElementById("apiStatus"),
+      reportPreview: document.getElementById("reportPreview")
+    };
+
+    function findField(headers, aliases) {
+      return aliases.find((name) => headers.includes(name)) || "";
+    }
+
+    function toNumber(value) {
+      if (value === null || value === undefined) return null;
+      let text = String(value).trim();
+      if (!text) return null;
+      const isPercent = text.endsWith("%");
+      text = text.replace(/%$/, "").replace(/,/g, "");
+      const number = Number(text);
+      if (!Number.isFinite(number)) return null;
+      return isPercent ? number / 100 : number;
+    }
+
+    function round(number, digits) {
+      const factor = 10 ** digits;
+      return Math.round((number + Number.EPSILON) * factor) / factor;
+    }
+
+    function calcAccuracy(row, fieldMap) {
+      const correct = fieldMap.correct ? toNumber(row[fieldMap.correct]) : null;
+      const sample = fieldMap.sample ? toNumber(row[fieldMap.sample]) : null;
+      if (correct !== null && sample !== null && sample > 0) return correct / sample;
+      const accuracy = fieldMap.accuracy ? toNumber(row[fieldMap.accuracy]) : null;
+      if (accuracy === null) return null;
+      return accuracy > 1 ? accuracy / 100 : accuracy;
+    }
+
+    function judgeReason(quantity, hours, accuracy) {
+      let reason = "";
+      let efficiency = null;
+      const t = state.thresholds;
+
+      if (quantity !== null && quantity < t.quantityMin) reason = "产能偏低";
+      if (quantity !== null && hours !== null && hours > 0) {
+        efficiency = quantity / hours;
+        if (efficiency < t.efficiencyMin) reason = "人效偏低";
+      }
+      if (accuracy !== null && accuracy < t.accuracyMin / 100) reason = "准确率异常";
+      if (quantity !== null && accuracy !== null && quantity > t.brushQuantityMin && accuracy < t.brushAccuracyMax / 100) reason = "疑似低质量刷量";
+      if (hours !== null && hours > 0 && quantity === 0) reason = "工作记录异常";
+
+      return { reason, efficiency };
+    }
+
+    function getAction(reason) {
+      return REASON_META[reason]?.action || "";
+    }
+
+    function getReasonClass(reason) {
+      return REASON_META[reason]?.className || "";
+    }
+
+    function getReasonColor(reason) {
+      return REASON_META[reason]?.color || COLORS.gray;
+    }
+
+    function parseCsv(text) {
+      const rows = [];
+      let row = [];
+      let cell = "";
+      let inQuotes = false;
+      const cleanText = text.replace(/^\uFEFF/, "");
+
+      for (let i = 0; i < cleanText.length; i += 1) {
+        const char = cleanText[i];
+        const next = cleanText[i + 1];
+        if (inQuotes) {
+          if (char === '"' && next === '"') {
+            cell += '"';
+            i += 1;
+          } else if (char === '"') {
+            inQuotes = false;
+          } else {
+            cell += char;
+          }
+          continue;
+        }
+        if (char === '"') inQuotes = true;
+        else if (char === ",") {
+          row.push(cell);
+          cell = "";
+        } else if (char === "\n") {
+          row.push(cell);
+          rows.push(row);
+          row = [];
+          cell = "";
+        } else if (char !== "\r") cell += char;
+      }
+
+      row.push(cell);
+      if (row.some((value) => value !== "") || rows.length === 0) rows.push(row);
+
+      const headers = (rows.shift() || []).map((header) => header.trim());
+      const dataRows = rows
+        .filter((values) => values.some((value) => String(value).trim() !== ""))
+        .map((values) => {
+          const item = {};
+          headers.forEach((header, index) => {
+            item[header] = values[index] ?? "";
+          });
+          return item;
+        });
+      return { headers, dataRows };
+    }
+
+    function csvEscape(value) {
+      const text = value === null || value === undefined ? "" : String(value);
+      if (/[",\r\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
+      return text;
+    }
+
+    function buildCsv(headers, rows) {
+      const lines = [
+        headers.map(csvEscape).join(","),
+        ...rows.map((row) => headers.map((header) => csvEscape(row[header])).join(","))
+      ];
+      return `\uFEFF${lines.join("\r\n")}`;
+    }
+
+    function createFieldMap(headers) {
+      return {
+        quantity: findField(headers, FIELD_ALIASES.quantity),
+        hours: findField(headers, FIELD_ALIASES.hours),
+        accuracy: findField(headers, FIELD_ALIASES.accuracy),
+        correct: findField(headers, FIELD_ALIASES.correct),
+        sample: findField(headers, FIELD_ALIASES.sample)
+      };
+    }
+
+    function validateFields(fieldMap) {
+      const missing = [];
+      if (!fieldMap.quantity) missing.push("标注量/完成量");
+      if (!fieldMap.hours) missing.push("时长/作业时长");
+      if (!fieldMap.accuracy && !(fieldMap.correct && fieldMap.sample)) missing.push("准确率/质量得分 或 正确量+抽检量");
+      return missing;
+    }
+
+    function processRows(headers, dataRows, fieldMap) {
+      return dataRows.map((row) => {
+        const output = { ...row };
+        const quantity = toNumber(row[fieldMap.quantity]);
+        const hours = toNumber(row[fieldMap.hours]);
+        const accuracy = calcAccuracy(row, fieldMap);
+        const { reason, efficiency } = judgeReason(quantity, hours, accuracy);
+        output["人效_条每小时"] = efficiency === null ? "" : round(efficiency, 2);
+        output["准确率_%"] = accuracy === null ? "" : round(accuracy * 100, 2);
+        output["是否异常"] = reason ? "是" : "否";
+        output["异常原因"] = reason;
+        output["建议动作"] = getAction(reason);
+        return output;
+      });
+    }
+
+    async function readCsvText(file) {
+      const buffer = await file.arrayBuffer();
+      let text = new TextDecoder("utf-8").decode(buffer);
+      if (text.includes("\uFFFD")) {
+        try { text = new TextDecoder("gb18030").decode(buffer); }
+        catch (error) { text = new TextDecoder("gbk").decode(buffer); }
+      }
+      return text;
+    }
+
+    async function handleFile(file) {
+      if (!file) return;
+      if (!file.name.toLowerCase().endsWith(".csv")) {
+        setMessage("请上传 CSV 文件。", "error");
+        return;
+      }
+      try {
+        const text = await readCsvText(file);
+        const { headers, dataRows } = parseCsv(text);
+        const fieldMap = createFieldMap(headers);
+        const missing = validateFields(fieldMap);
+        if (!headers.length || !dataRows.length) throw new Error("文件没有可处理的数据行。");
+        if (missing.length) throw new Error(`缺少必要字段：${missing.join("、")}`);
+
+        state.fileName = file.name;
+        state.headers = headers;
+        state.rawRows = dataRows;
+        state.outputHeaders = [...headers, ...OUTPUT_FIELDS.filter((field) => !headers.includes(field))];
+        state.fieldMap = fieldMap;
+        state.rows = processRows(headers, dataRows, fieldMap);
+        state.reportText = "";
+        clearFilters(false);
+        setReadyControls(true);
+        refreshAll();
+        setMessage(`已处理 ${file.name}，共 ${state.rows.length} 行。`);
+        setApiStatus("已读取处理结果，可生成日报。", "ok");
+      } catch (error) {
+        resetData(false);
+        setMessage(error.message || "处理文件时出现错误。", "error");
+      }
+    }
+
+    function setMessage(message, type = "info") {
+      els.messageBox.textContent = message;
+      els.messageBox.classList.toggle("error", type === "error");
+    }
+
+    function setApiStatus(message, type = "info") {
+      els.apiStatus.textContent = message;
+      els.apiStatus.classList.toggle("error", type === "error");
+      els.apiStatus.classList.toggle("ok", type === "ok");
+    }
+
+    function setReadyControls(enabled) {
+      [
+        els.exportBtn,
+        els.clearBtn,
+        els.searchInput,
+        els.reasonFilter,
+        els.projectFilter,
+        els.onlyAbnormal,
+        els.clearProjectBtn,
+        els.clearFiltersBtn,
+        els.localReportBtn,
+        els.generateReportBtn
+      ].forEach((el) => { el.disabled = !enabled; });
+    }
+
+    function refreshAll() {
+      sortRows();
+      updateSummary();
+      updateFilterOptions();
+      renderCharts();
+      applyFilters();
+    }
+
+    function updateSummary() {
+      const total = state.rows.length;
+      const abnormal = state.rows.filter((row) => row["是否异常"] === "是").length;
+      els.totalCount.textContent = total;
+      els.abnormalCount.textContent = abnormal;
+      els.normalCount.textContent = total - abnormal;
+      els.abnormalRate.textContent = total ? `${round((abnormal / total) * 100, 1)}%` : "0%";
+    }
+
+    function sortRows() {
+      state.rows.sort((a, b) => {
+        const abnormalA = a["是否异常"] === "是" ? 0 : 1;
+        const abnormalB = b["是否异常"] === "是" ? 0 : 1;
+        if (abnormalA !== abnormalB) return abnormalA - abnormalB;
+        const accA = toNumber(a["准确率_%"]) ?? 999;
+        const accB = toNumber(b["准确率_%"]) ?? 999;
+        return accA - accB;
+      });
+    }
+
+    function updateFilterOptions() {
+      const reasons = uniqueValues(state.rows.map((row) => row["异常原因"]).filter(Boolean));
+      const projects = uniqueValues(state.rows.map((row) => row["项目名称"]).filter(Boolean));
+      fillSelect(els.reasonFilter, "全部异常原因", reasons);
+      fillSelect(els.projectFilter, "全部项目", projects);
+    }
+
+    function fillSelect(select, firstLabel, values) {
+      const current = select.value;
+      select.innerHTML = `<option value="all">${escapeHtml(firstLabel)}</option>` + values.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join("");
+      if (values.includes(current)) select.value = current;
+    }
+
+    function uniqueValues(values) {
+      return [...new Set(values)].sort((a, b) => String(a).localeCompare(String(b), "zh-CN"));
+    }
+
+    function applyFilters() {
+      const keyword = els.searchInput.value.trim().toLowerCase();
+      const reason = els.reasonFilter.value;
+      const project = els.projectFilter.value;
+      const onlyAbnormal = els.onlyAbnormal.checked;
+
+      state.filteredRows = state.rows.filter((row) => {
+        if (onlyAbnormal && row["是否异常"] !== "是") return false;
+        if (reason !== "all" && row["异常原因"] !== reason) return false;
+        if (project !== "all" && row["项目名称"] !== project) return false;
+        if (!keyword) return true;
+        return state.outputHeaders.some((header) => String(row[header] ?? "").toLowerCase().includes(keyword));
+      });
+      renderTable();
+      renderProjectFilterChip();
+      updateProjectActiveRows();
+      renderFollowList();
+    }
+
+    function clearFilters(render = true) {
+      els.searchInput.value = "";
+      els.reasonFilter.value = "all";
+      els.projectFilter.value = "all";
+      els.onlyAbnormal.checked = false;
+      state.followPage = 1;
+      if (render) applyFilters();
+    }
+
+    function setProjectFilter(project) {
+      const previous = els.projectFilter.value;
+      const next = previous === project ? "all" : project;
+      els.projectFilter.value = next;
+      state.followPage = 1;
+      applyFilters();
+    }
+
+    function clearProjectFilter() {
+      if (els.projectFilter.value === "all") return;
+      els.projectFilter.value = "all";
+      state.followPage = 1;
+      applyFilters();
+    }
+
+    function renderProjectFilterChip() {
+      const project = els.projectFilter.value;
+      const active = project && project !== "all";
+      els.projectFilterChip.classList.toggle("is-visible", active);
+      els.clearProjectBtn.disabled = !state.rows.length || !active;
+      els.projectFilterText.textContent = active ? project : "";
+    }
+
+    function updateProjectActiveRows() {
+      const project = els.projectFilter.value;
+      els.projectRiskList.querySelectorAll(".project-risk-row").forEach((row) => {
+        row.classList.toggle("active", project !== "all" && row.dataset.project === project);
+      });
+    }
+
+    function renderTable() {
+      if (!state.rows.length) {
+        els.previewTable.hidden = true;
+        els.emptyState.hidden = false;
+        return;
+      }
+      const headers = selectPreviewHeaders();
+      const rows = state.filteredRows.slice(0, MAX_TABLE_ROWS);
+      els.tableHead.innerHTML = `<tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr>`;
+      els.tableBody.innerHTML = rows.map((row) => {
+        const abnormal = row["是否异常"] === "是";
+        const cells = headers.map((header) => renderCell(header, row[header], abnormal)).join("");
+        return `<tr class="${abnormal ? "is-abnormal" : ""}">${cells}</tr>`;
+      }).join("");
+      els.previewTable.hidden = false;
+      els.emptyState.hidden = true;
+    }
+
+    function selectPreviewHeaders() {
+      const priority = [
+        "日期",
+        "项目名称",
+        "标注员姓名",
+        "组别/负责人",
+        state.fieldMap?.quantity,
+        state.fieldMap?.hours,
+        "人效_条每小时",
+        "准确率_%",
+        "是否异常",
+        "异常原因",
+        "建议动作"
+      ].filter(Boolean);
+      const selected = [];
+      priority.forEach((header) => {
+        if (state.outputHeaders.includes(header) && !selected.includes(header)) selected.push(header);
+      });
+      state.outputHeaders.forEach((header) => {
+        if (selected.length < 14 && !selected.includes(header)) selected.push(header);
+      });
+      return selected;
+    }
+
+    function renderCell(header, value, abnormal) {
+      if (header === "是否异常") {
+        return `<td><span class="pill ${abnormal ? "abnormal" : "normal"}">${abnormal ? "异常" : "正常"}</span></td>`;
+      }
+      if (header === "异常原因") {
+        const reason = value || "";
+        return `<td>${reason ? `<span class="pill ${getReasonClass(reason)}">${escapeHtml(reason)}</span>` : ""}</td>`;
+      }
+      return `<td>${escapeHtml(value ?? "")}</td>`;
+    }
+
+    function renderFollowList() {
+      const allRows = getWatchRows();
+      const total = allRows.length;
+      const totalPages = Math.max(1, Math.ceil(total / state.followPageSize));
+      state.followPage = Math.min(Math.max(1, state.followPage), totalPages);
+      const start = (state.followPage - 1) * state.followPageSize;
+      const rows = allRows.slice(start, start + state.followPageSize);
+      renderFollowPager(total, totalPages);
+      if (!rows.length) {
+        els.followList.innerHTML = '<div class="empty">暂无重点跟进对象</div>';
+        return;
+      }
+      els.followList.innerHTML = rows.map((row) => {
+        const name = row["标注员姓名"] || row["姓名"] || "未命名";
+        const project = row["项目名称"] || row["任务类型"] || "未提供项目";
+        const reason = row["异常原因"] || "异常";
+        const efficiency = row["人效_条每小时"] || "-";
+        const accuracy = row["准确率_%"] || "-";
+        const action = row["建议动作"] || "复核样本。";
+        const risk = getPersonRisk(row);
+        const trigger = buildTriggerText(row);
+        const followKey = getFollowKey(row);
+        const followed = state.followedUsers.has(followKey);
+        return `
+          <div class="person-card">
+            <div class="person-head">
+              <div class="person-name">${escapeHtml(name)}</div>
+              <span class="pill ${risk.className}">${risk.label}</span>
+            </div>
+            <div><span class="pill ${getReasonClass(reason)}">${escapeHtml(reason)}</span></div>
+            <div class="person-meta">${escapeHtml(project)}</div>
+            <div class="person-metrics">
+              <div class="person-metric">人效<strong>${escapeHtml(efficiency)} 条/小时</strong></div>
+              <div class="person-metric">准确率<strong>${escapeHtml(accuracy)}%</strong></div>
+            </div>
+            <div class="person-rule">触发规则：${escapeHtml(trigger)}</div>
+            <div class="person-action">建议：${escapeHtml(action)}</div>
+            <button class="btn secondary ${followed ? "followed-btn" : ""}" type="button" data-follow-key="${escapeHtml(followKey)}">${followed ? "已跟进" : "跟进"}</button>
+          </div>
+        `;
+      }).join("");
+      els.followList.querySelectorAll("[data-follow-key]").forEach((button) => {
+        button.addEventListener("click", () => toggleFollowed(button.dataset.followKey));
+      });
+    }
+
+    function getWatchRows() {
+      const priority = { "工作记录异常": 5, "疑似低质量刷量": 4, "准确率异常": 3, "人效偏低": 2, "产能偏低": 1 };
+      return state.rows
+        .filter((row) => row["是否异常"] === "是")
+        .filter((row) => els.projectFilter.value === "all" || row["项目名称"] === els.projectFilter.value)
+        .sort((a, b) => {
+          const followedA = state.followedUsers.has(getFollowKey(a)) ? 1 : 0;
+          const followedB = state.followedUsers.has(getFollowKey(b)) ? 1 : 0;
+          if (followedA !== followedB) return followedA - followedB;
+          const riskA = getPersonRisk(a).score;
+          const riskB = getPersonRisk(b).score;
+          if (riskA !== riskB) return riskB - riskA;
+          const accA = toNumber(a["准确率_%"]) ?? 100;
+          const accB = toNumber(b["准确率_%"]) ?? 100;
+          if (accA !== accB) return accA - accB;
+          const effA = toNumber(a["人效_条每小时"]) ?? 99999;
+          const effB = toNumber(b["人效_条每小时"]) ?? 99999;
+          if (effA !== effB) return effA - effB;
+          return (priority[b["异常原因"]] || 0) - (priority[a["异常原因"]] || 0);
+        });
+    }
+
+    function getPersonRisk(row) {
+      const accuracy = toNumber(row["准确率_%"]) ?? 100;
+      const efficiency = toNumber(row["人效_条每小时"]) ?? 99999;
+      const reason = row["异常原因"];
+      if (accuracy < 80 || reason === "疑似低质量刷量" || reason === "工作记录异常") {
+        return { label: "严重", className: "abnormal", score: 3 };
+      }
+      if (accuracy < state.thresholds.accuracyMin || efficiency < state.thresholds.efficiencyMin) {
+        return { label: "较高", className: "reason-low-output", score: 2 };
+      }
+      return { label: "关注", className: "reason-low-eff", score: 1 };
+    }
+
+    function renderFollowPager(total, totalPages) {
+      if (total <= state.followPageSize) {
+        els.followPager.innerHTML = total ? `共 ${total} 人` : "";
+        return;
+      }
+      els.followPager.innerHTML = `
+        <span>共 ${total} 人，第 ${state.followPage} / ${totalPages} 页</span>
+        <button class="pager-btn" id="followPrevBtn" type="button" ${state.followPage <= 1 ? "disabled" : ""}>上一页</button>
+        <button class="pager-btn" id="followNextBtn" type="button" ${state.followPage >= totalPages ? "disabled" : ""}>下一页</button>
+      `;
+      const prev = document.getElementById("followPrevBtn");
+      const next = document.getElementById("followNextBtn");
+      if (prev) prev.addEventListener("click", () => {
+        state.followPage -= 1;
+        renderFollowList();
+      });
+      if (next) next.addEventListener("click", () => {
+        state.followPage += 1;
+        renderFollowList();
+      });
+    }
+
+    function getFollowKey(row) {
+      const name = row["标注员姓名"] || row["姓名"] || "未命名";
+      const project = row["项目名称"] || row["任务类型"] || "未提供项目";
+      const reason = row["异常原因"] || "异常";
+      return `${name}__${project}__${reason}`;
+    }
+
+    function loadFollowedUsers() {
+      try {
+        const values = JSON.parse(localStorage.getItem("annotation_followed_users") || "[]");
+        state.followedUsers = new Set(Array.isArray(values) ? values : []);
+      } catch (error) {
+        state.followedUsers = new Set();
+        localStorage.removeItem("annotation_followed_users");
+      }
+    }
+
+    function saveFollowedUsers() {
+      localStorage.setItem("annotation_followed_users", JSON.stringify([...state.followedUsers]));
+    }
+
+    function toggleFollowed(key) {
+      if (state.followedUsers.has(key)) state.followedUsers.delete(key);
+      else state.followedUsers.add(key);
+      saveFollowedUsers();
+      renderFollowList();
+    }
+
+    function buildTriggerText(row) {
+      const triggers = [];
+      const accuracy = toNumber(row["准确率_%"]);
+      const efficiency = toNumber(row["人效_条每小时"]);
+      if (accuracy !== null && accuracy < state.thresholds.accuracyMin) triggers.push(`准确率 < ${state.thresholds.accuracyMin}%`);
+      if (efficiency !== null && efficiency < state.thresholds.efficiencyMin) triggers.push(`人效 < ${state.thresholds.efficiencyMin}`);
+      if (row["异常原因"] === "疑似低质量刷量") triggers.push("高量低准");
+      if (row["异常原因"] === "工作记录异常") triggers.push("有工时无产出");
+      return triggers.length ? triggers.join(" / ") : row["异常原因"] || "异常";
+    }
+
+    function renderCharts() {
+      if (!state.rows.length) {
+        clearChart(els.reasonChart, "等待数据");
+        clearChart(els.accuracyHistogram, "等待数据");
+        renderEmptyRisk();
+        els.projectRiskList.innerHTML = '<div class="empty">等待数据</div>';
+        state.reasonHitboxes = [];
+        state.projectHitboxes = [];
+        return;
+      }
+      renderConclusion();
+      renderRiskDashboard();
+      renderReasonChart();
+      renderProjectRiskList();
+      renderAccuracyHistogram();
+    }
+
+    function setupCanvas(canvas) {
+      const rect = canvas.getBoundingClientRect();
+      const fallbackWidth = Number(canvas.getAttribute("width")) || 720;
+      const fallbackHeight = Number(canvas.getAttribute("height")) || 280;
+      const cssWidth = Math.max(1, rect.width || fallbackWidth);
+      const cssHeight = Math.max(1, rect.height || fallbackHeight);
+      const ratio = window.devicePixelRatio || 1;
+      canvas.width = Math.round(cssWidth * ratio);
+      canvas.height = Math.round(cssHeight * ratio);
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      ctx.clearRect(0, 0, cssWidth, cssHeight);
+      return { ctx, width: cssWidth, height: cssHeight };
+    }
+
+    function clearChart(canvas, text) {
+      const { ctx, width, height } = setupCanvas(canvas);
+      ctx.fillStyle = COLORS.gray;
+      ctx.font = "13px -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(text, width / 2, height / 2);
+    }
+
+    function renderEmptyRisk() {
+      els.conclusionTitle.textContent = "今日质量风险：等待数据";
+      els.conclusionText.textContent = "上传 CSV 后自动生成今日结论摘要。";
+      els.conclusionBadge.textContent = "待分析";
+      els.conclusionBadge.style.background = COLORS.gray;
+      els.riskPercent.textContent = "0%";
+      els.riskLevelText.textContent = "等待数据";
+      els.riskPointer.style.left = "0%";
+      els.riskAbnormal.textContent = "0 条";
+      els.riskNormal.textContent = "0 条";
+      els.riskConclusion.textContent = "上传数据后显示风险判断。";
+      els.paretoConclusion.textContent = "上传数据后显示主要异常来源。";
+      els.projectConclusion.textContent = "上传数据后显示高风险项目。";
+      els.accuracyInsight.textContent = "单位：人/记录，低于 85% 的记录需要优先复核。";
+      els.accuracyConclusion.textContent = "上传数据后显示准确率健康判断。";
+    }
+
+    function getOverallRisk(rate) {
+      if (rate <= 0.10) return { label: "良好", color: COLORS.green };
+      if (rate <= 0.25) return { label: "关注", color: COLORS.blue };
+      if (rate <= 0.40) return { label: "较高", color: COLORS.orange };
+      return { label: "严重", color: COLORS.red };
+    }
+
+    function renderConclusion() {
+      const total = state.rows.length;
+      const abnormal = state.rows.filter((row) => row["是否异常"] === "是").length;
+      const rate = total ? abnormal / total : 0;
+      const risk = getOverallRisk(rate);
+      const reasonTop = getTopReason();
+      const projectRisks = getProjectRiskEntries();
+      const highRiskProjects = projectRisks.filter((item) => item.risk.label === "严重").slice(0, 2).map((item) => item.name);
+      const lowAccuracyCount = state.rows.filter((row) => (toNumber(row["准确率_%"]) ?? 100) < state.thresholds.accuracyMin).length;
+
+      els.conclusionTitle.textContent = `今日质量风险：${risk.label}`;
+      els.conclusionBadge.textContent = risk.label;
+      els.conclusionBadge.style.background = risk.color;
+      els.conclusionText.textContent = `异常占比：${round(rate * 100, 1)}%，${rate > 0.25 ? "高于 25% 警戒线" : "未超过 25% 警戒线"}。主要异常：${reasonTop ? `${reasonTop[0]}，占异常的 ${round(reasonTop[2] * 100, 1)}%` : "暂无"}。高风险项目：${highRiskProjects.length ? highRiskProjects.join("、") : "暂无"}。建议：优先复核 ${Math.min(lowAccuracyCount || abnormal, 5)} 名低准确率人员，并检查低人效项目的任务分配。`;
+    }
+
+    function renderRiskDashboard() {
+      const total = state.rows.length;
+      const abnormal = state.rows.filter((row) => row["是否异常"] === "是").length;
+      const normal = total - abnormal;
+      const rate = total ? abnormal / total : 0;
+      const risk = getOverallRisk(rate);
+      const pct = round(rate * 100, 1);
+      els.riskPercent.textContent = `${pct}%`;
+      els.riskPercent.style.color = risk.color;
+      els.riskLevelText.textContent = risk.label;
+      els.riskPointer.style.left = `${Math.min(100, Math.max(0, pct))}%`;
+      els.riskAbnormal.textContent = `${abnormal} 条`;
+      els.riskNormal.textContent = `${normal} 条`;
+      els.riskConclusion.textContent = `异常占比 ${pct}%，已进入${risk.label}区间。`;
+    }
+
+    function renderReasonChart() {
+      const rows = state.rows.filter((row) => row["是否异常"] === "是");
+      const abnormalTotal = Math.max(rows.length, 1);
+      let cumulative = 0;
+      const entries = Object.entries(countBy(rows, "异常原因", "未分类"))
+        .sort((a, b) => b[1] - a[1])
+        .map(([reason, count]) => {
+          const pct = count / abnormalTotal;
+          cumulative += pct;
+          return [reason, count, pct, cumulative];
+        });
+      state.reasonHitboxes = renderHorizontalBars(els.reasonChart, entries, {
+        emptyText: "暂无异常原因",
+        unit: "条",
+        colorForLabel: (_label, index) => index === 0 ? COLORS.red : (index === 1 ? COLORS.orange : COLORS.blue),
+        valueLabel: (entry) => `${entry[1]} 条 / ${round(entry[2] * 100, 1)}% / 累计 ${round(entry[3] * 100, 1)}%`
+      });
+      const top = entries[0];
+      els.paretoConclusion.textContent = top ? `${top[0]}贡献 ${round(top[2] * 100, 1)}% 的异常，是首要问题。` : "暂无异常原因。";
+    }
+
+    function getProjectRisk(rate) {
+      if (rate >= 0.80) return { label: "严重", color: COLORS.red, className: "abnormal" };
+      if (rate >= 0.50) return { label: "较高", color: COLORS.orange, className: "reason-low-output" };
+      if (rate >= 0.20) return { label: "关注", color: COLORS.blue, className: "reason-low-eff" };
+      return { label: "正常", color: COLORS.green, className: "normal" };
+    }
+
+    function getTopReason() {
+      const abnormalRows = state.rows.filter((row) => row["是否异常"] === "是");
+      const entries = Object.entries(countBy(abnormalRows, "异常原因", "未分类")).sort((a, b) => b[1] - a[1]);
+      if (!entries.length) return null;
+      return [entries[0][0], entries[0][1], abnormalRows.length ? entries[0][1] / abnormalRows.length : 0];
+    }
+
+    function getProjectRiskEntries() {
+      const abnormalRows = state.rows.filter((row) => row["是否异常"] === "是");
+      const abnormalCounts = countBy(abnormalRows, "项目名称", "未填写");
+      const totalCounts = countBy(state.rows, "项目名称", "未填写");
+      return Object.entries(abnormalCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8)
+        .map(([name, count]) => {
+          const rate = totalCounts[name] ? count / totalCounts[name] : 0;
+          return { name, count, total: totalCounts[name] || 0, rate, risk: getProjectRisk(rate) };
+        });
+    }
+
+    function renderProjectRiskList() {
+      const entries = getProjectRiskEntries();
+      if (!entries.length) {
+        els.projectRiskList.innerHTML = '<div class="empty">暂无项目异常</div>';
+        els.projectConclusion.textContent = "暂无项目异常。";
+        return;
+      }
+      els.projectRiskList.innerHTML = entries.map((item) => `
+        <div class="project-risk-row" data-project="${escapeHtml(item.name)}">
+          <strong>${escapeHtml(item.name)}</strong>
+          <span>${item.count} 条</span>
+          <span>${round(item.rate * 100, 1)}%</span>
+          <span class="pill ${item.risk.className}">${item.risk.label}</span>
+          <span class="heat-track"><span class="heat-fill" style="width:${round(item.rate * 100, 1)}%;background:${item.risk.color}"></span></span>
+        </div>
+      `).join("");
+      els.projectRiskList.querySelectorAll(".project-risk-row").forEach((row) => {
+        row.addEventListener("click", () => {
+          setProjectFilter(row.dataset.project);
+        });
+      });
+      updateProjectActiveRows();
+      const maxCount = entries[0];
+      const maxRate = [...entries].sort((a, b) => b.rate - a.rate)[0];
+      els.projectConclusion.textContent = `${maxCount.name}异常数最高，${maxRate.name}异常占比最高。`;
+    }
+
+    function renderHorizontalBars(canvas, entries, options) {
+      const { ctx, width, height } = setupCanvas(canvas);
+      if (!entries.length) {
+        clearChart(canvas, options.emptyText);
+        return [];
+      }
+      const padding = { left: 118, right: 90, top: 18, bottom: 14 };
+      const plotWidth = Math.max(1, width - padding.left - padding.right);
+      const rowHeight = Math.min(30, (height - padding.top - padding.bottom) / entries.length);
+      const maxValue = Math.max(...entries.map((entry) => entry[1]), 1);
+      const hitboxes = [];
+
+      entries.forEach((entry, index) => {
+        const [label, value] = entry;
+        const color = options.colorForLabel ? options.colorForLabel(label, index) : COLORS.blue;
+        const y = padding.top + index * rowHeight + rowHeight / 2;
+        const barWidth = Math.max(7, (value / maxValue) * plotWidth);
+        ctx.fillStyle = "#eef2f7";
+        roundRect(ctx, padding.left, y - 7, plotWidth, 14, 7);
+        ctx.fill();
+        const gradient = ctx.createLinearGradient(padding.left, 0, padding.left + plotWidth, 0);
+        gradient.addColorStop(0, lightenColor(color, 18));
+        gradient.addColorStop(1, shadeColor(color, -12));
+        ctx.fillStyle = gradient;
+        roundRect(ctx, padding.left, y - 7, barWidth, 14, 7);
+        ctx.fill();
+
+        ctx.fillStyle = "#344054";
+        ctx.font = "12px -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif";
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+        ctx.fillText(truncateText(ctx, label, padding.left - 14), padding.left - 10, y);
+        ctx.fillStyle = shadeColor(color, -28);
+        ctx.font = "800 12px -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif";
+        ctx.textAlign = "left";
+        ctx.fillText(options.valueLabel ? options.valueLabel(entry) : `${value}${options.unit || ""}`, padding.left + barWidth + 8, y);
+        hitboxes.push({ x: 0, y: y - rowHeight / 2, width, height: rowHeight, label });
+      });
+      return hitboxes;
+    }
+
+    function renderAccuracyHistogram() {
+      const bins = [
+        { label: "<80", min: -Infinity, max: 80, color: COLORS.red },
+        { label: "80-85", min: 80, max: 85, color: COLORS.orange },
+        { label: "85-90", min: 85, max: 90, color: COLORS.blue },
+        { label: "90-95", min: 90, max: 95, color: COLORS.green },
+        { label: "95+", min: 95, max: Infinity, color: COLORS.green }
+      ];
+      const values = state.rows.map((row) => toNumber(row["准确率_%"])).filter((value) => value !== null);
+      bins.forEach((bin) => {
+        bin.count = values.filter((value) => value >= bin.min && value < bin.max).length;
+      });
+      const entries = bins.map((bin) => [bin.label, bin.count, bin.color]);
+      renderVerticalBars(els.accuracyHistogram, entries, { emptyText: "暂无准确率数据", unit: "人/记录" });
+      const lowCount = bins[0].count + bins[1].count;
+      els.accuracyInsight.textContent = `低于 ${state.thresholds.accuracyMin}% 的记录共 ${lowCount} 条，需要复核。`;
+      els.accuracyConclusion.textContent = lowCount ? `低于 ${state.thresholds.accuracyMin}% 的记录需要优先复核。` : "准确率整体达标，保持常规抽检。";
+    }
+
+    function renderVerticalBars(canvas, entries, options) {
+      const { ctx, width, height } = setupCanvas(canvas);
+      if (!entries.some((entry) => entry[1] > 0)) {
+        clearChart(canvas, options.emptyText);
+        return;
+      }
+      const padding = { left: 44, right: 18, top: 18, bottom: 42 };
+      const plotWidth = width - padding.left - padding.right;
+      const plotHeight = height - padding.top - padding.bottom;
+      const maxValue = Math.max(...entries.map((entry) => entry[1]), 1);
+      const maxBarWidth = 180;
+      const gap = 22;
+      const rawBarWidth = (plotWidth - gap * (entries.length - 1)) / entries.length;
+      const barWidth = Math.max(32, Math.min(maxBarWidth, rawBarWidth));
+      const usedWidth = barWidth * entries.length + gap * (entries.length - 1);
+      const startX = padding.left + Math.max(0, (plotWidth - usedWidth) / 2);
+
+      ctx.strokeStyle = "#e5e7eb";
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i += 1) {
+        const y = padding.top + (plotHeight / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(padding.left, y);
+        ctx.lineTo(width - padding.right, y);
+        ctx.stroke();
+      }
+
+      entries.forEach(([label, value, color], index) => {
+        const x = startX + index * (barWidth + gap);
+        const barHeight = (value / maxValue) * plotHeight;
+        const y = padding.top + plotHeight - barHeight;
+        ctx.fillStyle = color;
+        roundRect(ctx, x, y, barWidth, barHeight, 8);
+        ctx.fill();
+        ctx.fillStyle = "#1f2329";
+        ctx.font = "800 12px -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "bottom";
+        ctx.fillText(`${value} ${options.unit}`, x + barWidth / 2, y - 6);
+        ctx.fillStyle = COLORS.gray;
+        ctx.font = "12px -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif";
+        ctx.textBaseline = "top";
+        ctx.fillText(label, x + barWidth / 2, padding.top + plotHeight + 10);
+      });
+    }
+
+    function roundRect(ctx, x, y, width, height, radius) {
+      const r = Math.min(radius, width / 2, height / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + width, y, x + width, y + height, r);
+      ctx.arcTo(x + width, y + height, x, y + height, r);
+      ctx.arcTo(x, y + height, x, y, r);
+      ctx.arcTo(x, y, x + width, y, r);
+      ctx.closePath();
+    }
+
+    function truncateText(ctx, text, maxWidth) {
+      const value = String(text || "");
+      if (ctx.measureText(value).width <= maxWidth) return value;
+      let output = value;
+      while (output.length > 1 && ctx.measureText(`${output}...`).width > maxWidth) output = output.slice(0, -1);
+      return `${output}...`;
+    }
+
+    function shadeColor(hex, amount) {
+      const color = /^#[0-9a-f]{6}$/i.test(hex) ? hex : "#64748b";
+      const num = parseInt(color.slice(1), 16);
+      const r = clampColor((num >> 16) + amount);
+      const g = clampColor(((num >> 8) & 0x00ff) + amount);
+      const b = clampColor((num & 0x0000ff) + amount);
+      return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+    }
+
+    function lightenColor(hex, amount) {
+      return shadeColor(hex, Math.abs(amount));
+    }
+
+    function clampColor(value) {
+      return Math.max(0, Math.min(255, value));
+    }
+
+    function countBy(rows, field, emptyLabel) {
+      return rows.reduce((acc, row) => {
+        const key = String(row[field] || emptyLabel || "未填写");
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {});
+    }
+
+    function topCount(rows, field, limit) {
+      const counts = countBy(rows, field, "未填写");
+      return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, limit).map(([name, count]) => ({ name, count }));
+    }
+
+    function average(values) {
+      if (!values.length) return "";
+      return round(values.reduce((sum, value) => sum + value, 0) / values.length, 2);
+    }
+
+    function compactRow(row) {
+      const fields = ["日期", "项目名称", "标注员姓名", "组别/负责人", "任务类型", state.fieldMap?.quantity, state.fieldMap?.hours, "人效_条每小时", "准确率_%", "异常原因", "建议动作"].filter(Boolean);
+      const output = {};
+      fields.forEach((field) => { if (field in row && !(field in output)) output[field] = row[field]; });
+      return output;
+    }
+
+    function summarizeRows() {
+      const total = state.rows.length;
+      const abnormalRows = state.rows.filter((row) => row["是否异常"] === "是");
+      const efficiencyValues = state.rows.map((row) => toNumber(row["人效_条每小时"])).filter((value) => value !== null);
+      const accuracyValues = state.rows.map((row) => toNumber(row["准确率_%"])).filter((value) => value !== null);
+      return {
+        fileName: state.fileName,
+        reportDate: els.reportDate.value || new Date().toISOString().slice(0, 10),
+        reportTeam: els.reportTeam.value.trim() || "未填写",
+        reportOwner: els.reportOwner.value.trim() || "未填写",
+        thresholds: state.thresholds,
+        total,
+        normal: total - abnormalRows.length,
+        abnormal: abnormalRows.length,
+        abnormalRate: total ? `${round((abnormalRows.length / total) * 100, 1)}%` : "0%",
+        byReason: countBy(state.rows, "异常原因", "正常"),
+        byProject: topCount(state.rows, "项目名称", 10),
+        abnormalByProject: topCount(abnormalRows, "项目名称", 10),
+        averageEfficiency: average(efficiencyValues),
+        averageAccuracy: average(accuracyValues),
+        watchList: getWatchRows().slice(0, 10).map((row) => compactRow(row)),
+        sampleAbnormalRows: abnormalRows.slice(0, MAX_REPORT_ROWS).map((row) => compactRow(row))
+      };
+    }
+
+    function buildLocalReport(summary) {
+      const reasonLines = Object.entries(summary.byReason).filter(([reason]) => reason !== "正常").map(([reason, count]) => `- ${reason}：${count} 条`).join("\n");
+      const projectLines = summary.abnormalByProject.length ? summary.abnormalByProject.map((item) => `- ${item.name}：${item.count} 条`).join("\n") : "- 未提供";
+      const watchLines = summary.watchList.length ? summary.watchList.map((row, index) => {
+        const name = row["标注员姓名"] || row["姓名"] || "未命名";
+        const project = row["项目名称"] || row["任务类型"] || "未提供项目";
+        return `${index + 1}. ${name}｜${project}｜${row["异常原因"] || "异常"}｜人效 ${row["人效_条每小时"] || "-"}｜准确率 ${row["准确率_%"] || "-"}%｜${row["建议动作"] || ""}`;
+      }).join("\n") : "暂无重点跟进人员。";
+      return [
+        `# 标注运营日报｜${summary.reportDate}`,
+        "",
+        `团队 / 项目：${summary.reportTeam}`,
+        `汇报人：${summary.reportOwner}`,
+        `数据文件：${summary.fileName}`,
+        "",
+        "## 核心结论",
+        `- 今日共处理 ${summary.total} 条记录，正常 ${summary.normal} 条，异常 ${summary.abnormal} 条，异常占比 ${summary.abnormalRate}。`,
+        `- 平均人效为 ${summary.averageEfficiency || "未提供"} 条/小时，平均准确率为 ${summary.averageAccuracy || "未提供"}%。`,
+        summary.abnormal > 0 ? "- 建议优先跟进异常人员和异常项目，先处理准确率异常和疑似低质量刷量。" : "- 当前未发现异常，可保持常规抽检。",
+        "",
+        "## 异常原因拆解",
+        reasonLines || "- 暂无异常。",
+        "",
+        "## 项目异常排行",
+        projectLines,
+        "",
+        "## 重点跟进名单",
+        watchLines,
+        "",
+        "## 明日行动建议",
+        "- 对异常人员进行二次抽检，确认是任务难度、培训不足还是工作记录问题。",
+        "- 对准确率异常记录优先复盘样例，形成可复用的错例说明。",
+        "- 对疑似低质量刷量人员暂停批量任务，先完成样本复核。",
+        "- 次日继续跟踪同一批人员，观察异常是否收敛。"
+      ].join("\n");
+    }
+
+    function buildReportPrompt(summary) {
+      return [
+        "你是标注团队运营负责人，请基于以下 CSV 批量处理结果，生成一份中文管理日报。",
+        "要求：使用 Markdown；包含核心结论、异常原因拆解、项目异常排行、重点跟进名单、明日行动建议；不要编造数据。",
+        "",
+        "本地日报草稿：",
+        buildLocalReport(summary),
+        "",
+        "处理结果 JSON：",
+        JSON.stringify(summary, null, 2)
+      ].join("\n");
+    }
+
+    function generateLocalReport() {
+      if (!state.rows.length) return;
+      state.reportText = buildLocalReport(summarizeRows());
+      els.reportPreview.value = state.reportText;
+      els.exportReportBtn.disabled = false;
+      els.copyReportBtn.disabled = false;
+      setApiStatus("已生成本地日报，可复制或导出。", "ok");
+    }
+
+    async function generateReport() {
+      if (!state.rows.length) return;
+      const endpoint = els.apiEndpoint.value.trim();
+      const apiKey = els.apiKey.value.trim();
+      const model = els.apiModel.value.trim();
+      if (!endpoint || !apiKey || !model) {
+        setApiStatus("请先填写 API 地址、API Key 和模型名。", "error");
+        return;
+      }
+      const prompt = buildReportPrompt(summarizeRows());
+      els.generateReportBtn.disabled = true;
+      els.exportReportBtn.disabled = true;
+      setApiStatus("正在调用 API 生成日报...", "info");
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: "system", content: "你是严谨的数据分析助手，擅长把运营数据整理成简洁可执行的中文日报。" },
+              { role: "user", content: prompt }
+            ],
+            temperature: 0.2
+          })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error?.message || data.message || `API 请求失败：${response.status}`);
+        const report = data.choices?.[0]?.message?.content || data.output_text || "";
+        if (!report.trim()) throw new Error("API 返回为空，请检查接口格式。");
+        state.reportText = report.trim();
+        els.reportPreview.value = state.reportText;
+        els.exportReportBtn.disabled = false;
+        els.copyReportBtn.disabled = false;
+        setApiStatus("日报已生成，可以导出。", "ok");
+      } catch (error) {
+        setApiStatus(`${error.message || "日报生成失败"}。如果浏览器提示 CORS，需要使用允许网页调用的接口或本地代理。`, "error");
+      } finally {
+        els.generateReportBtn.disabled = !state.rows.length;
+      }
+    }
+
+    function exportCsv() {
+      if (!state.rows.length) return;
+      const csv = buildCsv(state.outputHeaders, state.rows);
+      downloadText(csv, `${state.fileName.replace(/\.csv$/i, "") || "处理结果"}_异常判定.csv`, "text/csv;charset=utf-8");
+    }
+
+    function exportReport() {
+      if (!state.reportText.trim()) return;
+      downloadText(state.reportText, `${state.fileName.replace(/\.csv$/i, "") || "标注日报"}_日报.md`, "text/markdown;charset=utf-8");
+    }
+
+    function downloadText(text, filename, type) {
+      const blob = new Blob([text], { type });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    async function copyReport() {
+      if (!state.reportText.trim()) return;
+      try {
+        await navigator.clipboard.writeText(state.reportText);
+        setApiStatus("日报已复制到剪贴板。", "ok");
+      } catch (error) {
+        els.reportPreview.focus();
+        els.reportPreview.select();
+        setApiStatus("已选中日报内容，可按 Ctrl+C 复制。", "info");
+      }
+    }
+
+    function saveApiConfig() {
+      const config = {
+        endpoint: els.apiEndpoint.value.trim(),
+        model: els.apiModel.value.trim(),
+        team: els.reportTeam.value.trim(),
+        owner: els.reportOwner.value.trim()
+      };
+      localStorage.setItem("annotationReportConfig", JSON.stringify(config));
+      if (els.apiKey.value.trim()) sessionStorage.setItem("annotationReportApiKey", els.apiKey.value.trim());
+      setApiStatus("常用配置已保存；API Key 仅在当前浏览器会话保留。", "ok");
+    }
+
+    function loadApiConfig() {
+      els.reportDate.value = new Date().toISOString().slice(0, 10);
+      try {
+        const config = JSON.parse(localStorage.getItem("annotationReportConfig") || "{}");
+        if (config.endpoint) els.apiEndpoint.value = config.endpoint;
+        if (config.model) els.apiModel.value = config.model;
+        if (config.team) els.reportTeam.value = config.team;
+        if (config.owner) els.reportOwner.value = config.owner;
+      } catch (error) {
+        localStorage.removeItem("annotationReportConfig");
+      }
+      const savedKey = sessionStorage.getItem("annotationReportApiKey");
+      if (savedKey) els.apiKey.value = savedKey;
+    }
+
+    function readThresholdInputs() {
+      state.thresholds = {
+        quantityMin: readPositiveNumber(els.thresholdQuantity, DEFAULT_THRESHOLDS.quantityMin),
+        efficiencyMin: readPositiveNumber(els.thresholdEfficiency, DEFAULT_THRESHOLDS.efficiencyMin),
+        accuracyMin: clamp(readPositiveNumber(els.thresholdAccuracy, DEFAULT_THRESHOLDS.accuracyMin), 0, 100),
+        brushQuantityMin: readPositiveNumber(els.thresholdBrushQuantity, DEFAULT_THRESHOLDS.brushQuantityMin),
+        brushAccuracyMax: clamp(readPositiveNumber(els.thresholdBrushAccuracy, DEFAULT_THRESHOLDS.brushAccuracyMax), 0, 100)
+      };
+      renderThresholdLabels();
+    }
+
+    function readPositiveNumber(input, fallback) {
+      const value = Number(input.value);
+      return Number.isFinite(value) && value >= 0 ? value : fallback;
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function renderThresholdInputs() {
+      els.thresholdQuantity.value = state.thresholds.quantityMin;
+      els.thresholdEfficiency.value = state.thresholds.efficiencyMin;
+      els.thresholdAccuracy.value = state.thresholds.accuracyMin;
+      els.thresholdBrushQuantity.value = state.thresholds.brushQuantityMin;
+      els.thresholdBrushAccuracy.value = state.thresholds.brushAccuracyMax;
+      renderThresholdLabels();
+    }
+
+    function renderThresholdLabels() {
+      els.ruleQuantityText.textContent = state.thresholds.quantityMin;
+      els.ruleEfficiencyText.textContent = state.thresholds.efficiencyMin;
+      els.ruleAccuracyText.textContent = state.thresholds.accuracyMin;
+      els.ruleBrushQuantityText.textContent = state.thresholds.brushQuantityMin;
+      els.ruleBrushAccuracyText.textContent = state.thresholds.brushAccuracyMax;
+    }
+
+    function reprocessCurrentRows() {
+      if (!state.rawRows.length || !state.fieldMap) return;
+      state.rows = processRows(state.headers, state.rawRows, state.fieldMap);
+      state.reportText = "";
+      els.reportPreview.value = "";
+      els.exportReportBtn.disabled = true;
+      els.copyReportBtn.disabled = true;
+      refreshAll();
+      setApiStatus("规则阈值已更新，日报需要重新生成。", "info");
+    }
+
+    function resetData(showMessage = true) {
+      state.fileName = "";
+      state.headers = [];
+      state.rawRows = [];
+      state.outputHeaders = [];
+      state.rows = [];
+      state.filteredRows = [];
+      state.fieldMap = null;
+      state.reportText = "";
+      els.fileInput.value = "";
+      els.reportPreview.value = "";
+      els.exportReportBtn.disabled = true;
+      els.copyReportBtn.disabled = true;
+      setReadyControls(false);
+      clearFilters(false);
+      updateSummary();
+      updateFilterOptions();
+      renderCharts();
+      renderFollowList();
+      renderTable();
+      renderProjectFilterChip();
+      setApiStatus("默认先用本地日报，API 可用于润色。", "info");
+      if (showMessage) setMessage("已清空。可以继续上传新的 CSV 文件。");
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function getCanvasPoint(event, canvas) {
+      const rect = canvas.getBoundingClientRect();
+      return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    }
+
+    function hitTest(hitboxes, point) {
+      return hitboxes.find((box) => point.x >= box.x && point.x <= box.x + box.width && point.y >= box.y && point.y <= box.y + box.height);
+    }
+
+    els.pickBtn.addEventListener("click", () => els.fileInput.click());
+    els.fileInput.addEventListener("change", (event) => handleFile(event.target.files[0]));
+    els.clearBtn.addEventListener("click", () => resetData(true));
+    els.exportBtn.addEventListener("click", exportCsv);
+    els.searchInput.addEventListener("input", applyFilters);
+    els.reasonFilter.addEventListener("change", applyFilters);
+    els.projectFilter.addEventListener("change", () => {
+      state.followPage = 1;
+      applyFilters();
+    });
+    els.onlyAbnormal.addEventListener("change", applyFilters);
+    els.clearFiltersBtn.addEventListener("click", () => clearFilters(true));
+    els.clearProjectBtn.addEventListener("click", clearProjectFilter);
+    els.chipClearProjectBtn.addEventListener("click", clearProjectFilter);
+    els.localReportBtn.addEventListener("click", generateLocalReport);
+    els.generateReportBtn.addEventListener("click", generateReport);
+    els.copyReportBtn.addEventListener("click", copyReport);
+    els.exportReportBtn.addEventListener("click", exportReport);
+    els.saveApiBtn.addEventListener("click", saveApiConfig);
+    els.toggleReportBtn.addEventListener("click", () => {
+      const open = els.reportPanel.hidden;
+      els.reportPanel.hidden = !open;
+      els.reportCard.classList.toggle("is-open", open);
+      els.toggleReportBtn.textContent = open ? "收起配置" : "展开配置";
+    });
+
+    [els.thresholdQuantity, els.thresholdEfficiency, els.thresholdAccuracy, els.thresholdBrushQuantity, els.thresholdBrushAccuracy].forEach((input) => {
+      input.addEventListener("change", () => {
+        readThresholdInputs();
+        reprocessCurrentRows();
+      });
+    });
+
+    els.resetThresholdBtn.addEventListener("click", () => {
+      state.thresholds = { ...DEFAULT_THRESHOLDS };
+      renderThresholdInputs();
+      reprocessCurrentRows();
+    });
+
+    ["dragenter", "dragover"].forEach((eventName) => {
+      els.dropzone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        els.dropzone.classList.add("is-dragging");
+      });
+    });
+
+    ["dragleave", "drop"].forEach((eventName) => {
+      els.dropzone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        els.dropzone.classList.remove("is-dragging");
+      });
+    });
+
+    els.dropzone.addEventListener("drop", (event) => handleFile(event.dataTransfer.files[0]));
+
+    els.reasonChart.addEventListener("click", (event) => {
+      const hit = hitTest(state.reasonHitboxes, getCanvasPoint(event, els.reasonChart));
+      if (!hit) return;
+      els.reasonFilter.value = hit.label;
+      els.onlyAbnormal.checked = true;
+      applyFilters();
+    });
+
+    window.addEventListener("resize", () => {
+      window.clearTimeout(state.chartResizeTimer);
+      state.chartResizeTimer = window.setTimeout(renderCharts, 120);
+    });
+
+    loadFollowedUsers();
+    loadApiConfig();
+    renderThresholdInputs();
+    resetData(false);
+  </script>
+</body>
+</html>

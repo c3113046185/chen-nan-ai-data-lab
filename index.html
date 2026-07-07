@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 数据评测实验室｜陈楠</title>
+  <meta name="description" content="陈楠的 AI 数据训练、模型评测、多模态评测与数据标注质检交互案例展厅。">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="site-shell" id="top">
+    <header class="site-header" id="siteHeader">
+      <a class="brand" href="#/home" aria-label="回到首页">
+        <span class="brand-mark">CN</span>
+        <span>
+          <strong>AI 数据评测实验室</strong>
+          <small>Chen Nan · Data QA Lab</small>
+        </span>
+      </a>
+
+      <button class="menu-toggle" id="menuToggle" type="button" aria-label="展开导航" aria-expanded="false">
+        <span></span>
+        <span></span>
+      </button>
+
+      <nav class="site-nav" id="siteNav" aria-label="主导航">
+        <a href="#stage">首页</a>
+        <a href="#project-gallery">案例展厅</a>
+        <a href="#demo-lab">质检 Demo</a>
+        <a href="#contact">联系</a>
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="切换深浅主题">浅色</button>
+      </nav>
+    </header>
+
+    <main>
+      <section class="portfolio-stage section-anchor" id="stage">
+        <div class="stage-grid" id="stageWall" aria-hidden="true"></div>
+        <div class="stage-vignette" aria-hidden="true"></div>
+
+        <div class="stage-card reveal">
+          <aside class="stage-rail">
+            <p class="stage-kicker">Chen Nan · AI Data Evaluation</p>
+            <h1><span>陈楠</span></h1>
+            <p class="stage-role">AI 数据训练师 / AI 模型评测 / 多模态评测 / 数据标注质检</p>
+            <p class="stage-copy">有得物 AI 数据训练师经历，参与电商图片理解、AI 搜索导购评测、商品短视频机审评测和标注质检看板等项目。擅长把业务需求拆成评测维度、标注规则和质检闭环。</p>
+
+            <div class="stage-tags" id="stageTags"></div>
+
+            <div class="stage-actions">
+              <a class="btn primary" href="#project-gallery">进入案例展厅</a>
+              <a class="btn subtle" href="assets/resume.pdf" download>下载简历</a>
+            </div>
+          </aside>
+
+          <div class="stage-visual" id="stageVisual" aria-label="AI 轨道视觉展示区">
+            <div class="ai-orbit" aria-hidden="true">
+              <div class="orbit-core"></div>
+              <div class="orbit-ring orbit-ring-one"><span class="orbit-dot orbit-dot-one"></span></div>
+              <div class="orbit-ring orbit-ring-two"><span class="orbit-dot orbit-dot-two"></span></div>
+              <div class="orbit-console">
+                <span>QA CORE</span>
+                <strong>规则 → 样本 → 归因 → 看板</strong>
+                <small>把经验沉淀成可复盘的数据评测系统</small>
+              </div>
+              <div class="orbit-card-layer" id="orbitCardLayer"></div>
+            </div>
+            <img id="stageRoleImage" src="assets/chen-3d.png" alt="" aria-hidden="true">
+            <div class="floating-note note-left">
+              <span>Rule Design</span>
+              <strong>标签体系 / QA 口径</strong>
+            </div>
+            <div class="floating-note note-right">
+              <span>Dataset QA</span>
+              <strong>抽检 / 返修 / 复检</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="project-gallery section-anchor" id="project-gallery">
+        <div class="section-head reveal">
+          <p class="eyebrow">案例展厅</p>
+          <h2>案例展厅</h2>
+          <p>点击案例进入独立案例拆解层：从业务背景、拆解方法、样本判断，到 badcase 归因和可沉淀产出。</p>
+        </div>
+        <div class="gallery-grid" id="projectWall"></div>
+      </section>
+
+      <section class="demo-lab section-anchor reveal" id="demo-lab">
+        <div class="demo-copy">
+          <p class="eyebrow">质检 Demo</p>
+          <h2>质检看板 Demo</h2>
+          <p>一个本地可打开的质检规则工具入口，用来展示“规则沉淀、批次检查、问题定位、结果导出”的工具化思路。</p>
+        </div>
+        <div class="demo-panel">
+          <span class="demo-badge">OFFLINE HTML</span>
+          <strong>annotation_quality_rules_offline.html</strong>
+          <p>无需网络、无需后端，双击或从本页面打开即可查看。</p>
+          <a class="btn primary" href="demos/annotation_quality_rules_offline.html" target="_blank" rel="noopener">打开质检看板</a>
+        </div>
+      </section>
+
+      <section class="about-contact section-anchor" id="about">
+        <div class="about-card reveal">
+          <p class="eyebrow">About</p>
+          <h2>不是只做标注，而是把标注变成可复盘的数据评测流程。</h2>
+          <p id="aboutSummary"></p>
+          <div class="about-points" id="aboutPoints"></div>
+        </div>
+      </section>
+
+      <section class="contact-section section-anchor reveal" id="contact">
+        <article class="attitude-card">
+          <p class="eyebrow">个人态度</p>
+          <h2>个人态度</h2>
+          <p id="attitudeText"></p>
+        </article>
+        <aside class="contact-action-card">
+          <p class="eyebrow">联系我</p>
+          <div class="contact-grid" id="contactGrid"></div>
+        </aside>
+      </section>
+    </main>
+  </div>
+
+  <aside class="project-page" id="projectPage" aria-hidden="true">
+    <button class="project-close" id="projectClose" type="button" aria-label="关闭案例拆解">×</button>
+    <div class="project-page-inner project-page-content case-detail-scroll" id="projectPageInner"></div>
+  </aside>
+
+  <button class="back-top" id="backTop" type="button" aria-label="回到顶部">↑</button>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
